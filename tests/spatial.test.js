@@ -38,3 +38,4 @@ test('SpatialGrid handles boundary items and negative coords safely', () => {
   assert.equal(found.length, 1);
   assert.equal(found[0].id, 'f_edge');
 });
+

@@ -63,3 +63,4 @@ export class PowerUpsManager {
     return Array.from(this.powerups.values());
   }
 }
+

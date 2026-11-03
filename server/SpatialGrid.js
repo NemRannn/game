@@ -99,3 +99,4 @@ export class SpatialGrid {
     return results;
   }
 }
+

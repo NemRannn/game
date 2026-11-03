@@ -23,3 +23,4 @@ test('PowerUpsManager applies buff to snake', () => {
   manager.applyToSnake(snake, 'magnet');
   assert.ok(snake.buffs.magnet > 0, 'Magnet buff should be active');
 });
+

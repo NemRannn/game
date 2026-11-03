@@ -81,3 +81,4 @@ test('In FFA mode, head-to-body collision kills the crashing snake', () => {
   assert.equal(p1.isAlive, false, 'Crashing snake should die in FFA mode');
   assert.equal(p2.isAlive, true, 'Snake that was collided into should stay alive');
 });
+

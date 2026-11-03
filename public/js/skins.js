@@ -119,3 +119,4 @@ export const SKINS = [
 export function getSkinById(id) {
   return SKINS.find(s => s.id === id) || SKINS[0];
 }
+

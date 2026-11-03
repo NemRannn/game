@@ -51,3 +51,4 @@
 ## 💡 Mẹo chơi mượt trên Điện Thoại & iPad
 - **Tăng tốc (Boost)**: Đặt một ngón tay điều hướng, và **chạm giữ ngón tay thứ 2 bất kỳ vào màn hình** để phóng nhanh như Snake.io thật! Hoặc chạm vào nút `⚡ TỐC ĐỘ` ở góc phải.
 - **Toàn màn hình**: Trên Safari (iPhone/iPad), nhấn vào nút chia sẻ và chọn **Thêm vào MH chính (Add to Home Screen)** để mở game ở chế độ toàn màn hình như một ứng dụng thực thụ không có thanh địa chỉ!
+

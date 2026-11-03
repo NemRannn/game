@@ -63,6 +63,14 @@ export class InputManager {
       }
     });
 
+    // Reset boost state if user switches tabs or windows
+    window.addEventListener('blur', () => {
+      this.isBoosting = false;
+      this.activeTouches.clear();
+      this.steerTouchId = null;
+      this.boostTouchId = null;
+    });
+
     // 3. Multi-Touch Controls (Mobile & iPad)
     this.canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
     this.canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
@@ -160,3 +168,4 @@ export class InputManager {
     };
   }
 }
+

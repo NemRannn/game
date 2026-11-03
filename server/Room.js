@@ -203,52 +203,56 @@ export class Room {
   }
 
   tick() {
-    const allSnakes = Array.from(this.snakes.values());
+    try {
+      const allSnakes = Array.from(this.snakes.values());
 
-    // 1. Update AI bots
-    for (const snake of allSnakes) {
-      if (!snake.isAlive) continue;
+      // 1. Update AI bots
+      for (const snake of allSnakes) {
+        if (!snake.isAlive) continue;
 
-      if (snake.isBot) {
-        const decision = this.botAI.computeDecision(snake, {
-          arenaRadius: this.arenaRadius,
-          snakes: allSnakes,
-          foodGrid: this.foodGrid
-        });
-        const dropped = snake.update(decision.targetAngle, decision.wantsBoost, this.arenaRadius);
-        for (const drop of dropped) {
-          this.spawnFood(drop.x, drop.y, drop.value, false);
+        if (snake.isBot) {
+          const decision = this.botAI.computeDecision(snake, {
+            arenaRadius: this.arenaRadius,
+            snakes: allSnakes,
+            foodGrid: this.foodGrid
+          });
+          const dropped = snake.update(decision.targetAngle, decision.wantsBoost, this.arenaRadius);
+          for (const drop of dropped) {
+            this.spawnFood(drop.x, drop.y, drop.value, false);
+          }
         }
       }
+
+      // 2. Check food & powerup pickups
+      this.checkPickups();
+
+      // 3. Check snake collisions
+      this.checkCollisions();
+
+      // 4. Replenish food & bots
+      if (this.foods.size < this.targetFoodCount) {
+        this.spawnFood();
+      }
+
+      let activeBots = 0;
+      for (const s of this.snakes.values()) {
+        if (s.isBot && s.isAlive) activeBots++;
+      }
+      if (activeBots < this.targetBotCount) {
+        this.spawnBot();
+      }
+
+      // 5. Periodic Power-up spawn (every ~12 seconds)
+      if (Date.now() - this.lastPowerupSpawn > 12000 && this.powerupsManager.getAll().length < 5) {
+        this.powerupsManager.spawn(this.arenaRadius);
+        this.lastPowerupSpawn = Date.now();
+      }
+
+      // 6. Broadcast snapshot to all connected human clients
+      this.broadcastSnapshot();
+    } catch (err) {
+      console.error(`[Room ${this.code}] Tick error:`, err);
     }
-
-    // 2. Check food & powerup pickups
-    this.checkPickups();
-
-    // 3. Check snake collisions
-    this.checkCollisions();
-
-    // 4. Replenish food & bots
-    if (this.foods.size < this.targetFoodCount) {
-      this.spawnFood();
-    }
-
-    let activeBots = 0;
-    for (const s of this.snakes.values()) {
-      if (s.isBot && s.isAlive) activeBots++;
-    }
-    if (activeBots < this.targetBotCount) {
-      this.spawnBot();
-    }
-
-    // 5. Periodic Power-up spawn (every ~12 seconds)
-    if (Date.now() - this.lastPowerupSpawn > 12000 && this.powerupsManager.getAll().length < 5) {
-      this.powerupsManager.spawn(this.arenaRadius);
-      this.lastPowerupSpawn = Date.now();
-    }
-
-    // 6. Broadcast snapshot to all connected human clients
-    this.broadcastSnapshot();
   }
 
   checkPickups() {
@@ -364,6 +368,10 @@ export class Room {
     if (!victim.isAlive) return;
     victim.kill();
 
+    if (victim.isBot) {
+      this.botAI.cleanup(victim.id);
+    }
+
     if (killer && killer.id !== victim.id) {
       killer.kills = (killer.kills || 0) + 1;
       killer.score += 150;
@@ -407,21 +415,27 @@ export class Room {
 
     leaderboard.sort((a, b) => b.score - a.score);
     const topLeaderboard = leaderboard.slice(0, 10);
-
     const powerups = this.powerupsManager.getAll();
 
-    // Prepare food snapshot: send items to each client
-    const foodList = Array.from(this.foods.values()).map(f => ({
-      id: f.id,
-      x: f.x,
-      y: f.y,
-      v: f.value,
-      c: f.color,
-      s: f.isSweet ? 1 : 0
-    }));
+    // Broadcast tailored, culled snapshot to each human socket
+    const viewRadius = 1400; // Covers max view area + zoom buffer
 
     for (const [socketId, socket] of this.sockets) {
       const me = this.snakes.get(socketId);
+      const myX = me ? me.x : 0;
+      const myY = me ? me.y : 0;
+
+      // Query nearby food using spatial grid for blazing O(1) performance
+      const nearbyFoods = this.foodGrid.queryRadius(myX, myY, viewRadius);
+      const foodList = nearbyFoods.map(f => ({
+        id: f.id,
+        x: f.x,
+        y: f.y,
+        v: f.value,
+        c: f.color,
+        s: f.isSweet ? 1 : 0
+      }));
+
       socket.emit('game_tick', {
         t: Date.now(),
         arenaRadius: this.arenaRadius,

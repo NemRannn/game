@@ -36,6 +36,11 @@ export class GameServer {
   }
 
   joinRoom(code, socket, playerData = {}) {
+    // If socket is already in another room, leave it first
+    if (this.playerRoomMap.has(socket.id)) {
+      this.handleDisconnect(socket.id);
+    }
+
     const cleanCode = String(code).trim();
     let room = this.rooms.get(cleanCode);
 
@@ -155,3 +160,4 @@ export class GameServer {
     });
   }
 }
+

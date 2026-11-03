@@ -7,3 +7,4 @@ test('server.js exports app and gameServer instances', () => {
   assert.ok(gameServer);
   assert.equal(typeof gameServer.createRoom, 'function');
 });
+
