@@ -1,6 +1,8 @@
 /**
- * Multi-Touch and Mouse/Keyboard Input Controller.
- * Special mechanic: Holding 2nd finger anywhere on screen triggers boost (Snake.io authentic).
+ * Multi-Touch and Mouse/Keyboard Input Controller with Authentic Snake.io Floating Joystick.
+ * - Floating joystick: Touching anywhere spawns a joystick under your thumb.
+ * - 2nd finger anywhere on screen triggers Boost!
+ * - PC: Mouse steering + Left/Right click or Space to Boost.
  */
 export class InputManager {
   constructor(canvas) {
@@ -9,8 +11,16 @@ export class InputManager {
     this.targetAngle = 0;
     this.isBoosting = false;
 
-    // Touch tracking: touchId -> { x, y }
-    this.activeTouches = new Map();
+    // Floating Virtual Joystick state (Snake.io style)
+    this.joystick = {
+      active: false,
+      startX: 0,
+      startY: 0,
+      currX: 0,
+      currY: 0,
+      radius: 55
+    };
+
     this.steerTouchId = null;
     this.boostTouchId = null;
 
@@ -26,12 +36,14 @@ export class InputManager {
     window.addEventListener('mousemove', (e) => {
       this.mouseX = e.clientX;
       this.mouseY = e.clientY;
-      this.updateMouseAngle();
+      if (!this.joystick.active) {
+        this.updateMouseAngle();
+      }
     });
 
     window.addEventListener('mousedown', (e) => {
       if (e.target.closest && e.target.closest('.interactive')) return;
-      if (e.button === 0 || e.button === 2) { // Left or right click
+      if (e.button === 0 || e.button === 2) {
         this.isBoosting = true;
       }
     });
@@ -43,7 +55,7 @@ export class InputManager {
     });
 
     window.addEventListener('contextmenu', (e) => {
-      e.preventDefault(); // Prevent right-click context menu in game
+      e.preventDefault();
     });
 
     // 2. Keyboard Spacebar boost & Arrow/WASD steering
@@ -63,15 +75,14 @@ export class InputManager {
       }
     });
 
-    // Reset boost state if user switches tabs or windows
     window.addEventListener('blur', () => {
       this.isBoosting = false;
-      this.activeTouches.clear();
+      this.joystick.active = false;
       this.steerTouchId = null;
       this.boostTouchId = null;
     });
 
-    // 3. Multi-Touch Controls (Mobile & iPad)
+    // 3. Multi-Touch Controls with Floating Joystick
     this.canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
     this.canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
     this.canvas.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
@@ -84,6 +95,7 @@ export class InputManager {
         e.preventDefault();
         this.isBoosting = true;
         mobileBoostBtn.classList.add('active');
+        if (navigator.vibrate) navigator.vibrate(20);
       };
       const endBtnBoost = (e) => {
         e.preventDefault();
@@ -110,13 +122,18 @@ export class InputManager {
       const touch = e.changedTouches[i];
 
       if (this.steerTouchId === null) {
-        // First finger controls steering direction
+        // Finger 1 spawns floating virtual joystick under thumb
         this.steerTouchId = touch.identifier;
-        this.updateSteerFromTouch(touch);
+        this.joystick.active = true;
+        this.joystick.startX = touch.clientX;
+        this.joystick.startY = touch.clientY;
+        this.joystick.currX = touch.clientX;
+        this.joystick.currY = touch.clientY;
       } else if (this.boostTouchId === null) {
-        // SECOND FINGER triggers boost! (authentic snake.io mechanic)
+        // Finger 2 anywhere on screen triggers boost!
         this.boostTouchId = touch.identifier;
         this.isBoosting = true;
+        if (navigator.vibrate) navigator.vibrate(25);
       }
     }
   }
@@ -125,8 +142,21 @@ export class InputManager {
     e.preventDefault();
     for (let i = 0; i < e.changedTouches.length; i++) {
       const touch = e.changedTouches[i];
-      if (touch.identifier === this.steerTouchId) {
-        this.updateSteerFromTouch(touch);
+      if (touch.identifier === this.steerTouchId && this.joystick.active) {
+        const dx = touch.clientX - this.joystick.startX;
+        const dy = touch.clientY - this.joystick.startY;
+        const dist = Math.hypot(dx, dy);
+
+        // Calculate steer angle
+        if (dist > 8) {
+          this.targetAngle = Math.atan2(dy, dx);
+        }
+
+        // Clamp knob within joystick radius for visual rendering
+        const clampedDist = Math.min(dist, this.joystick.radius);
+        const angle = Math.atan2(dy, dx);
+        this.joystick.currX = this.joystick.startX + Math.cos(angle) * clampedDist;
+        this.joystick.currY = this.joystick.startY + Math.sin(angle) * clampedDist;
       }
     }
   }
@@ -137,28 +167,28 @@ export class InputManager {
       const touch = e.changedTouches[i];
 
       if (touch.identifier === this.boostTouchId) {
-        // Second finger released -> stop boosting
         this.boostTouchId = null;
         this.isBoosting = false;
       }
 
       if (touch.identifier === this.steerTouchId) {
         this.steerTouchId = null;
+        this.joystick.active = false;
 
-        // If the boost finger is still on screen, transfer it to steer
+        // If boost finger still held, transfer it to steer
         if (this.boostTouchId !== null) {
           this.steerTouchId = this.boostTouchId;
           this.boostTouchId = null;
           this.isBoosting = false;
+          // Spawn joystick at second finger's current spot
+          this.joystick.active = true;
+          this.joystick.startX = touch.clientX;
+          this.joystick.startY = touch.clientY;
+          this.joystick.currX = touch.clientX;
+          this.joystick.currY = touch.clientY;
         }
       }
     }
-  }
-
-  updateSteerFromTouch(touch) {
-    const cx = window.innerWidth / 2;
-    const cy = window.innerHeight / 2;
-    this.targetAngle = Math.atan2(touch.clientY - cy, touch.clientX - cx);
   }
 
   getInput() {
@@ -168,4 +198,3 @@ export class InputManager {
     };
   }
 }
-

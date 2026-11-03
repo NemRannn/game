@@ -70,13 +70,10 @@ export class GameServer {
     const snake = room.snakes.get(socketId);
     if (!snake || !snake.isAlive) return;
 
-    const targetAngle = typeof inputData.angle === 'number' ? inputData.angle : snake.angle;
-    const wantsBoost = !!inputData.boost;
-
-    const dropped = snake.update(targetAngle, wantsBoost, room.arenaRadius);
-    for (const drop of dropped) {
-      room.spawnFood(drop.x, drop.y, drop.value, false);
+    if (typeof inputData.angle === 'number') {
+      snake.desiredAngle = inputData.angle;
     }
+    snake.desiredBoost = !!inputData.boost;
   }
 
   handleRespawn(socketId, data = {}) {

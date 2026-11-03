@@ -206,9 +206,12 @@ export class Room {
     try {
       const allSnakes = Array.from(this.snakes.values());
 
-      // 1. Update AI bots
+      // 1. Update all snakes (both AI bots and human players) synchronously
       for (const snake of allSnakes) {
         if (!snake.isAlive) continue;
+
+        let targetAngle = snake.angle;
+        let wantsBoost = false;
 
         if (snake.isBot) {
           const decision = this.botAI.computeDecision(snake, {
@@ -216,10 +219,16 @@ export class Room {
             snakes: allSnakes,
             foodGrid: this.foodGrid
           });
-          const dropped = snake.update(decision.targetAngle, decision.wantsBoost, this.arenaRadius);
-          for (const drop of dropped) {
-            this.spawnFood(drop.x, drop.y, drop.value, false);
-          }
+          targetAngle = decision.targetAngle;
+          wantsBoost = decision.wantsBoost;
+        } else {
+          targetAngle = snake.desiredAngle !== undefined ? snake.desiredAngle : snake.angle;
+          wantsBoost = !!snake.desiredBoost;
+        }
+
+        const dropped = snake.update(targetAngle, wantsBoost, this.arenaRadius);
+        for (const drop of dropped) {
+          this.spawnFood(drop.x, drop.y, drop.value, false);
         }
       }
 
@@ -377,10 +386,12 @@ export class Room {
       killer.score += 150;
     }
 
-    // Convert victim body into sweet candy treats
-    for (let i = 0; i < victim.segments.length; i += 2) {
+    // Convert victim body into dense sweet candy treats (Snake.io authentic)
+    for (let i = 0; i < victim.segments.length; i++) {
       const seg = victim.segments[i];
-      this.spawnFood(seg.x, seg.y, 4, true);
+      const scatterX = seg.x + (Math.random() - 0.5) * 6;
+      const scatterY = seg.y + (Math.random() - 0.5) * 6;
+      this.spawnFood(scatterX, scatterY, 4, true);
     }
 
     // Notify human victim socket of death

@@ -63,3 +63,4 @@ test('Room killSnake cleans up bot memory in botAI', () => {
   room.killSnake(bot, null);
   assert.ok(!room.botAI.botMemories.has(bot.id), 'Bot memory should be deleted on death');
 });
+

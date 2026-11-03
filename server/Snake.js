@@ -26,12 +26,12 @@ export class Snake {
     this.score = 0;
     this.kills = 0;
 
-    // Movement parameters
-    this.baseSpeed = 4.2;
-    this.boostSpeed = 8.4;
-    this.turnRate = 0.12; // Max angle delta per tick (~30Hz)
-    this.segmentSpacing = 7; // Distance between recorded segment nodes
-    this.radius = 14;
+    // Movement parameters - Tuned for authentic Snake.io agility
+    this.baseSpeed = 5.2;
+    this.boostSpeed = 10.2;
+    this.turnRate = 0.18; // Agile turning arc
+    this.segmentSpacing = 8; // Distance between recorded segment nodes
+    this.radius = 15;
 
     // Active power-up durations in ticks (~30 ticks/s)
     this.buffs = {

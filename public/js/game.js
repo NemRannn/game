@@ -295,6 +295,11 @@ class GameApp {
     this.socket.on('game_tick', (state) => {
       this.gameState = state;
 
+      // Sync server snakes to client animation engine
+      if (this.renderer && state.snakes) {
+        this.renderer.syncSnakes(state.snakes);
+      }
+
       // Audio feedback when mass increases (eating orbs)
       if (state.me) {
         if (this.lastMass > 0 && state.me.mass > this.lastMass + 0.2) {
@@ -397,6 +402,9 @@ class GameApp {
   }
 
   renderLoop(time) {
+    const dt = Math.min(0.05, (time - this.lastFrameTime) / 1000 || 0.016);
+    this.lastFrameTime = time;
+
     this.frameCount++;
     if (time - this.fpsTimer >= 1000) {
       this.fps = this.frameCount;
@@ -409,7 +417,7 @@ class GameApp {
     }
 
     if (this.renderer && this.gameState) {
-      this.renderer.render(this.gameState, this.myId);
+      this.renderer.render(this.gameState, this.myId, this.input, dt);
     }
 
     requestAnimationFrame((t) => this.renderLoop(t));
