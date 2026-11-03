@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SnakeCute.io — Game Rắn Đáng Yêu Cho Bạn & Người Yêu</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
+</head>
+<body>
+
+  <!-- Game Main Canvas -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- In-Game HUD Layer -->
+  <div class="ui-layer" id="hud-layer" style="display: none;">
+    <!-- Top Left: Room code & Mode badge -->
+    <div class="hud-top-left">
+      <div class="badge badge-clickable" id="room-code-badge" title="Bấm để sao chép link phòng">
+        <span>🏠 Phòng: <strong id="hud-room-code">------</strong></span>
+        <span id="copy-icon">📋</span>
+      </div>
+      <div class="badge" id="hud-mode-badge">
+        <span id="hud-mode-text">⚔️ Cạnh Tranh</span>
+      </div>
+      <div class="badge" style="font-size: 0.75rem; padding: 4px 10px;">
+        <span id="hud-fps-ping">60 FPS | 20ms</span>
+      </div>
+    </div>
+
+    <!-- Top Right: Live Leaderboard -->
+    <div class="hud-top-right">
+      <div class="leaderboard-card">
+        <div class="lb-title">🏆 Bảng Xếp Hạng</div>
+        <ul class="lb-list" id="leaderboard-list">
+          <!-- Populated dynamically -->
+        </ul>
+      </div>
+    </div>
+
+    <!-- Bottom Left: Minimap Radar -->
+    <div class="hud-bottom-left">
+      <canvas id="minimap-canvas" width="120" height="120"></canvas>
+    </div>
+
+    <!-- Bottom Center: Active Power-up Buffs -->
+    <div class="hud-bottom-center" id="hud-buffs-container">
+      <!-- Populated dynamically -->
+    </div>
+
+    <!-- Bottom Right: Score & Length + Mobile Boost Button -->
+    <div class="hud-bottom-right">
+      <div class="stats-card">
+        <div class="score-num" id="hud-score">0</div>
+        <div class="score-label">Điểm số (Độ dài: <span id="hud-length">18</span>)</div>
+      </div>
+      <button class="mobile-boost-btn interactive" id="mobile-boost-btn">
+        <span class="icon">⚡</span>
+        <span>TỐC ĐỘ</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Lobby Modal -->
+  <div class="modal-overlay" id="lobby-modal">
+    <div class="modal-card">
+      <h1 class="logo-title">SnakeCute.io 🐍</h1>
+      <p class="logo-subtitle">Game rắn săn mồi siêu cute cho bạn & người thương 💕</p>
+
+      <!-- Nickname Input -->
+      <div class="input-group">
+        <label class="input-label" for="player-name-input">Tên bé cưng của bạn:</label>
+        <input type="text" id="player-name-input" class="input-field" maxlength="15" placeholder="Nhập tên của bạn...">
+      </div>
+
+      <!-- Skin Carousel -->
+      <div class="skin-selector-container">
+        <div class="skin-preview-wrap">
+          <canvas id="skin-preview-canvas" width="110" height="110"></canvas>
+        </div>
+        <div class="skin-nav-row">
+          <button class="skin-nav-btn" id="skin-prev-btn">◀</button>
+          <div class="skin-info-text">
+            <div class="skin-name-badge" id="skin-name-display">Mèo Kitty 🐱</div>
+            <div class="skin-desc-badge" id="skin-desc-display">Bé mèo hồng tai nhọn chớp mắt cực yêu!</div>
+          </div>
+          <button class="skin-nav-btn" id="skin-next-btn">▶</button>
+        </div>
+      </div>
+
+      <!-- Game Mode Selection -->
+      <div class="input-label" style="text-align: left; margin-bottom: 6px;">Chọn chế độ chơi:</div>
+      <div class="mode-toggle-group">
+        <button class="mode-btn active" id="mode-ffa-btn" data-mode="ffa">
+          <span class="mode-icon">⚔️</span>
+          <span>Cạnh Tranh (FFA)</span>
+        </button>
+        <button class="mode-btn" id="mode-duo-btn" data-mode="duo">
+          <span class="mode-icon">💕</span>
+          <span>Cặp Đôi (Duo)</span>
+        </button>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="btn-group">
+        <button class="btn-primary" id="btn-create-room">🏠 Tạo Phòng (Mã 6 Số)</button>
+        <div class="btn-row">
+          <button class="btn-secondary" id="btn-open-join">🔑 Nhập Mã Phòng</button>
+          <button class="btn-secondary" id="btn-quick-play">⚡ Chơi Thử Nhanh</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Join with 6-digit Code Modal -->
+  <div class="modal-overlay hidden" id="join-modal">
+    <div class="modal-card">
+      <h2 style="font-size: 1.6rem; font-weight: 800; margin-bottom: 8px;">🔑 Nhập Mã Phòng 6 Số</h2>
+      <p style="font-size: 0.9rem; color: #636e72; margin-bottom: 20px;">Nhập mã phòng mà bạn bè/người yêu đã gửi cho bạn</p>
+
+      <div class="input-group">
+        <input type="text" id="join-code-input" class="input-field" maxlength="6" pattern="[0-9]*" inputmode="numeric" placeholder="VD: 582910" style="text-align: center; font-size: 1.8rem; letter-spacing: 6px;">
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-primary" id="btn-confirm-join">🚀 Vào Phòng Ngay</button>
+        <button class="btn-secondary" id="btn-back-lobby">Quay Lại</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div class="modal-overlay hidden" id="gameover-modal">
+    <div class="modal-card">
+      <div style="font-size: 3.5rem; margin-bottom: 8px;">😵💫</div>
+      <h2 style="font-size: 1.8rem; font-weight: 800; color: #ff4757; margin-bottom: 6px;">Úi, bị vỡ tan òi!</h2>
+      <p id="gameover-reason" style="font-size: 0.95rem; color: #636e72; margin-bottom: 16px;">Bạn đã bị Bé Miu Miu ép góc</p>
+
+      <div style="background: #ffffff; border-radius: 16px; padding: 14px; margin-bottom: 20px; display: flex; justify-content: space-around;">
+        <div>
+          <div style="font-size: 0.8rem; color: #636e72; font-weight: 700;">ĐIỂM SỐ</div>
+          <div id="gameover-score" style="font-size: 1.6rem; font-weight: 800; color: #ff6b81;">0</div>
+        </div>
+        <div style="border-left: 2px solid #dfe6e9;"></div>
+        <div>
+          <div style="font-size: 0.8rem; color: #636e72; font-weight: 700;">HẠ GỤC</div>
+          <div id="gameover-kills" style="font-size: 1.6rem; font-weight: 800; color: #74b9ff;">0</div>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-primary" id="btn-respawn">✨ Hồi Sinh Chơi Lại</button>
+        <button class="btn-secondary" id="btn-exit-to-lobby">Về Menu Chính</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Synthesizer & Client Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>
