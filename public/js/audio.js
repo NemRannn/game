@@ -22,6 +22,10 @@ class CuteAudio {
 
   playEat() {
     if (this.isMuted) return;
+    const nowMs = Date.now();
+    if (this.lastEatTime && nowMs - this.lastEatTime < 65) return;
+    this.lastEatTime = nowMs;
+
     this._initContext();
     if (!this.ctx) return;
 

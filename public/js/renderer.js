@@ -333,15 +333,20 @@ export class GameRenderer {
     if (!foodList) return;
     const now = performance.now() * 0.005;
 
+    // High performance 2-pass batch glow (0% shadowBlur overhead)
     for (const f of foodList) {
       const bob = Math.sin(now + (f.x * 0.03 + f.y * 0.03)) * 1.5;
       const r = (f.s ? 9.5 : 4.8) + bob;
 
-      ctx.save();
+      // Soft halo glow
+      ctx.globalAlpha = f.s ? 0.35 : 0.2;
       ctx.fillStyle = f.c || '#ff7675';
-      ctx.shadowColor = f.c || '#ff7675';
-      ctx.shadowBlur = f.s ? 16 : 6;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, r * 1.6, 0, Math.PI * 2);
+      ctx.fill();
 
+      // Crisp inner bead
+      ctx.globalAlpha = 1.0;
       ctx.beginPath();
       ctx.arc(f.x, f.y, Math.max(2, r), 0, Math.PI * 2);
       ctx.fill();
@@ -360,8 +365,8 @@ export class GameRenderer {
         ctx.textBaseline = 'middle';
         ctx.fillText('✨', f.x, f.y - 10);
       }
-      ctx.restore();
     }
+    ctx.globalAlpha = 1.0;
   }
 
   renderPowerups(ctx, powerups) {
@@ -414,7 +419,6 @@ export class GameRenderer {
       const taper = 0.82 + (1 - i / segs.length) * 0.18;
       const segR = r * taper;
 
-      ctx.save();
       if (skin.pattern === 'rings' && i % 4 < 2) {
         ctx.fillStyle = skin.secondaryColor;
       } else if (skin.pattern === 'rainbow_gradient') {
@@ -439,8 +443,6 @@ export class GameRenderer {
         ctx.arc(seg.x, seg.y, 3.5, 0, Math.PI * 2);
         ctx.fill();
       }
-
-      ctx.restore();
     }
 
     // 2. Draw Snake Head

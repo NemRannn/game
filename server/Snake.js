@@ -180,8 +180,8 @@ export class Snake {
       skin: this.skin,
       isBot: this.isBot,
       isHost: this.isHost,
-      x: Math.round(this.x * 10) / 10,
-      y: Math.round(this.y * 10) / 10,
+      x: Math.round(this.x),
+      y: Math.round(this.y),
       angle: Math.round(this.angle * 100) / 100,
       isBoosting: this.isBoosting,
       radius: Math.round(this.radius),
@@ -195,8 +195,8 @@ export class Snake {
         vision: this.buffs.vision > 0
       },
       segments: this.segments.map(s => ({
-        x: Math.round(s.x * 10) / 10,
-        y: Math.round(s.y * 10) / 10
+        x: Math.round(s.x),
+        y: Math.round(s.y)
       }))
     };
   }

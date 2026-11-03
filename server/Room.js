@@ -314,16 +314,9 @@ export class Room {
           continue;
         }
 
-        // Self collision check (only check against own tail segments >= 5)
+        // In Snake.io, a snake NEVER dies from its own body/tail!
+        // This allows coiling defensively and encircling/trapping other snakes!
         if (s1.id === s2.id) {
-          for (let segIdx = 6; segIdx < s1.segments.length; segIdx += 2) {
-            const seg = s1.segments[segIdx];
-            const dist = Math.hypot(s1.x - seg.x, s1.y - seg.y);
-            if (dist < s1.radius * 0.9 && s1.buffs.shield <= 0) {
-              this.killSnake(s1, null);
-              break;
-            }
-          }
           continue;
         }
 
