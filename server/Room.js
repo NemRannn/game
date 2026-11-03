@@ -18,6 +18,18 @@ const BOT_SKINS = [
   'cat', 'panda', 'corgi', 'dino', 'strawberry', 'boba', 'rainbow', 'chick'
 ];
 
+function distToSegmentSquared(px, py, x1, y1, x2, y2) {
+  const l2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+  if (l2 === 0) return (px - x1) * (px - x1) + (py - y1) * (py - y1);
+  let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+  t = Math.max(0, Math.min(1, t));
+  const projX = x1 + t * (x2 - x1);
+  const projY = y1 + t * (y2 - y1);
+  const dx = px - projX;
+  const dy = py - projY;
+  return dx * dx + dy * dy;
+}
+
 export class Room {
   /**
    * @param {Object} options
@@ -309,59 +321,70 @@ export class Room {
         const s2 = allSnakes[j];
         if (!s2.isAlive) continue;
 
+        // In Snake.io, a snake NEVER dies from its own body/tail!
+        if (s1.id === s2.id) {
+          continue;
+        }
+
         // DUO CO-OP MODE: Humans never kill each other!
         if (this.mode === 'duo' && !s1.isBot && !s2.isBot) {
           continue;
         }
 
-        // In Snake.io, a snake NEVER dies from its own body/tail!
-        // This allows coiling defensively and encircling/trapping other snakes!
-        if (s1.id === s2.id) {
-          continue;
-        }
+        const hitRadius = (s1.radius * 0.85 + (s2.radius || 15) * 0.85);
+        const hitRadiusSq = hitRadius * hitRadius;
 
-        // Collision with another snake's body segments
-        // In Snake.io, hitting s2's body kills s1
-        let collided = false;
-        const s2Radius = s2.radius || 14;
-
-        for (let segIdx = 0; segIdx < s2.segments.length; segIdx += 2) {
-          const seg = s2.segments[segIdx];
-          const dist = Math.hypot(s1.x - seg.x, s1.y - seg.y);
-
-          if (dist < (s1.radius * 0.75 + s2Radius * 0.75)) {
-            // Collision occurred!
-            if (s1.buffs.shield > 0) {
-              // Shield protects s1!
-              collided = false;
-              break;
-            }
-
-            // Head to head clash: smaller dies, or both die if equal
-            if (segIdx === 0) {
-              if (s1.mass < s2.mass) {
-                this.killSnake(s1, s2);
-                collided = true;
-                break;
-              } else if (s2.mass < s1.mass) {
-                this.killSnake(s2, s1);
-                break;
-              } else {
-                this.killSnake(s1, s2);
-                this.killSnake(s2, s1);
-                collided = true;
-                break;
-              }
-            } else {
-              // Hit body of s2 -> s1 dies
+        // 1. Check head-to-head collision
+        const headDistSq = (s1.x - s2.x) * (s1.x - s2.x) + (s1.y - s2.y) * (s1.y - s2.y);
+        if (headDistSq < hitRadiusSq) {
+          if (s1.buffs.shield > 0 && s2.buffs.shield > 0) {
+            // Both shielded, bounce off
+          } else if (s1.buffs.shield > 0) {
+            this.killSnake(s2, s1);
+            break;
+          } else if (s2.buffs.shield > 0) {
+            this.killSnake(s1, s2);
+            break;
+          } else {
+            // Both die or smaller dies
+            if (s1.mass < s2.mass) {
               this.killSnake(s1, s2);
-              collided = true;
+              break;
+            } else if (s2.mass < s1.mass) {
+              this.killSnake(s2, s1);
+              break;
+            } else {
+              this.killSnake(s1, s2);
+              this.killSnake(s2, s1);
               break;
             }
           }
         }
 
-        if (collided) break;
+        // 2. Check if head of s1 hits ANY body segment capsule of s2
+        // Rule: If head of s1 touches body of s2 -> s1 DIES IMMEDIATELY! s2 lives!
+        let killed = false;
+        const segs = s2.segments;
+
+        for (let segIdx = 1; segIdx < segs.length; segIdx++) {
+          const seg1 = segs[segIdx - 1];
+          const seg2 = segs[segIdx];
+
+          const dSq = distToSegmentSquared(s1.x, s1.y, seg1.x, seg1.y, seg2.x, seg2.y);
+          if (dSq < hitRadiusSq) {
+            if (s1.buffs.shield > 0) {
+              // Shield protects s1 from body death
+              break;
+            }
+
+            // Head of s1 crashed into body of s2 -> s1 dies!
+            this.killSnake(s1, s2);
+            killed = true;
+            break;
+          }
+        }
+
+        if (killed) break;
       }
     }
   }
