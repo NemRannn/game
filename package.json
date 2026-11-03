@@ -1,0 +1,25 @@
+{
+  "name": "snake-cute-io",
+  "version": "1.0.0",
+  "description": "Ultra-smooth, charming multiplayer Snake.io game for mobile, tablet, and PC",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": [
+    "snake",
+    "multiplayer",
+    "socketio",
+    "canvas",
+    "html5-game"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}
